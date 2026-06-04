@@ -1,3 +1,15 @@
+== v0.2.2 — 2026-06-04
+
+=== Modifié
+
+* **Dépendance `pdf2text` ~> 0.5.** Profite des mesures de bbox
+  exactes par CID brut (v0.5.0) : fin des faux positifs `huge_gap`
+  qui apparaissaient sur les lignes contenant du gras ou des
+  fontes dont le sous-ensemble avait un préfixe commençant par
+  « W » (largeurs alors estimées au lieu d'exactes). Sur le README
+  beryl FR et EN, le linter ne remonte plus aucune anomalie — état
+  conforme à la vérification indépendante poppler.
+
 == v0.2.1 — 2026-06-04
 
 === Ajouté

@@ -6,5 +6,5 @@ shards:
 
   pdf2text:
     git: https://github.com/aloli-crystal/pdf2text.git
-    version: 0.3.0
+    version: 0.5.0
 
