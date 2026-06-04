@@ -1,3 +1,41 @@
+== v0.2.1 — 2026-06-04
+
+=== Ajouté
+
+* **Filtre `monospace?` pour `margin_overflow`.**
+  Les mots rendus dans une fonte monospace (typiquement les
+  blocs `[source,…]` et codespan inline `\`code\``) ne sont
+  pas wrappés par asciidoctor — c'est une convention
+  typographique (une commande shell ou un identifier ne doit
+  pas être coupé en ligne). Le débordement est alors un signal
+  pour l'**auteur** du document (« casse ta ligne dans le
+  source AsciiDoc »), pas un bug du moteur PDF. Le linter
+  ignore désormais ces cas par défaut.
++
+  L'heuristique `WordEntry#monospace?` regarde le nom de
+  fonte : substring `mono`, `courier` ou `typewriter`.
+  Désactivable via `Options.ignore_monospace_overflow = false`.
+
+* **Filtre `filename_like` pour `orphan_punctuation`.**
+  Un mot commençant par `.` mais contenant plusieurs
+  caractères dont une lettre est typiquement un nom de
+  fichier ou dossier Unix (`.ssh/`, `.bashrc`, `.gitignore`).
+  Le linter n'attribue plus ces cas à une ponctuation
+  orpheline.
+
+* **`WordEntry#font_name`.** Champ propagé depuis
+  `Pdf2Text::Word#font_name` pour permettre les filtres
+  basés sur la fonte. Présent dans le manifest YAML/JSON.
+
+=== Note
+
+Sur le PDF du README beryl, les anomalies passent de 11 à 8
+(2 monospace + 1 filename_like filtrés). Les 8 restants sont
+de **vrais bugs** du composer crystal-asciidoctor-pdf
+(débordements de prose entre 4 et 13 pt, principalement sur
+les ponctuations finales et le `:` français après NBSP) à
+traiter dans une session dédiée.
+
 = Changelog
 :toc: left
 :toc-title: Versions

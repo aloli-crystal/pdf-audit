@@ -84,8 +84,9 @@ module PdfAudit
     property x_max : Float64
     property y_max : Float64
     property font_size : Float64
+    property font_name : String
 
-    def initialize(@text, @x_min, @y_min, @x_max, @y_max, @font_size)
+    def initialize(@text, @x_min, @y_min, @x_max, @y_max, @font_size, @font_name = "")
     end
 
     def self.from_pdf2text(w : ::Pdf2Text::Word) : WordEntry
@@ -96,11 +97,21 @@ module PdfAudit
         x_max: w.bbox.x_max,
         y_max: w.bbox.y_max,
         font_size: w.font_size,
+        font_name: w.font_name,
       )
     end
 
     def width : Float64
       x_max - x_min
+    end
+
+    # Heuristique : la fonte est-elle monospace (typiquement
+    # utilisée dans les blocs `[source,…]` ou inline `\`code\``) ?
+    # On regarde les substrings courants dans le nom de fonte.
+    def monospace? : Bool
+      return false if font_name.empty?
+      lower = font_name.downcase
+      lower.includes?("mono") || lower.includes?("courier") || lower.includes?("typewriter")
     end
   end
 end

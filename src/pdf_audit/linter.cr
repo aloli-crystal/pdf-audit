@@ -88,7 +88,8 @@ module PdfAudit
       check_orphan : Bool = true,
       check_admonition_layout : Bool = true,
       check_header_footer : Bool = true,
-      check_code_comment : Bool = true
+      check_code_comment : Bool = true,
+      ignore_monospace_overflow : Bool = true
 
     def lint(manifest : Manifest, opts : Options = Options.new) : Array(Finding)
       findings = [] of Finding
@@ -108,23 +109,43 @@ module PdfAudit
 
           line_words.each_with_index do |w, idx|
             if opts.check_overflow && w.x_max > target_right + opts.overflow_tolerance_pt
-              findings << Finding.new(
-                kind: :margin_overflow,
-                page: page.number,
-                message: "Mot dépasse la marge droite (x_max=#{w.x_max.round(1)} > #{target_right.round(1)} + tolerance #{opts.overflow_tolerance_pt})",
-                x_min: w.x_min, y_min: w.y_min, x_max: w.x_max, y_max: w.y_max,
-                text: w.text,
-              )
+              # Filtre : les mots en fonte monospace (blocs
+              # [source,…] et codespan inline `\`code\``) ne sont
+              # pas wrappés par asciidoctor — c'est une convention
+              # typographique (une commande shell ou un identifier
+              # ne doit pas être coupé). Le débordement est alors
+              # un signal pour l'AUTEUR du document (« casse ta
+              # ligne dans le source »), pas un bug du moteur PDF.
+              unless opts.ignore_monospace_overflow && w.monospace?
+                findings << Finding.new(
+                  kind: :margin_overflow,
+                  page: page.number,
+                  message: "Mot dépasse la marge droite (x_max=#{w.x_max.round(1)} > #{target_right.round(1)} + tolerance #{opts.overflow_tolerance_pt})",
+                  x_min: w.x_min, y_min: w.y_min, x_max: w.x_max, y_max: w.y_max,
+                  text: w.text,
+                )
+              end
             end
 
             if idx == 0 && opts.check_orphan && !w.text.empty? && ORPHAN_CHARS.includes?(w.text[0])
-              findings << Finding.new(
-                kind: :orphan_punctuation,
-                page: page.number,
-                message: "Ponctuation orpheline en début de ligne : « #{w.text[0]} »",
-                x_min: w.x_min, y_min: w.y_min, x_max: w.x_max, y_max: w.y_max,
-                text: w.text,
-              )
+              # Filtre : un mot commençant par `.` mais contenant
+              # plusieurs caractères dont une lettre est typiquement
+              # un nom de fichier ou dossier Unix (`.ssh/`,
+              # `.bashrc`, `.gitignore`), pas une ponctuation
+              # orpheline. On ne reporte que si c'est vraiment un
+              # signe isolé ou suivi d'autres signes.
+              filename_like = w.text[0] == '.' &&
+                              w.text.size > 1 &&
+                              w.text[1..].chars.any?(&.letter?)
+              unless filename_like
+                findings << Finding.new(
+                  kind: :orphan_punctuation,
+                  page: page.number,
+                  message: "Ponctuation orpheline en début de ligne : « #{w.text[0]} »",
+                  x_min: w.x_min, y_min: w.y_min, x_max: w.x_max, y_max: w.y_max,
+                  text: w.text,
+                )
+              end
             end
 
             next if idx == 0
