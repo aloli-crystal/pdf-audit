@@ -1,0 +1,22 @@
+= pdf-audit
+:description: Outil daudit visuel pour PDFs : baseline/diff/lint/annotate. Consomme aloli-crystal/pdf2text.
+
+Outil daudit visuel pour PDFs : baseline/diff/lint/annotate. Consomme aloli-crystal/pdf2text.
+
+== Statut
+
+* *Version* : {page-component-display-version}
+* *Repo* : https://github.com/aloli-crystal/pdf_audit[aloli-crystal/pdf_audit]
+* *Licence* : MIT
+
+== Quickstart
+
+[source,crystal]
+----
+require "pdf_audit"
+
+# … exemple d'utilisation …
+----
+
+Pour les détails, voir xref:usage.adoc[Utilisation] ou
+xref:api.adoc[API].

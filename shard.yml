@@ -1,0 +1,31 @@
+name: pdf-audit
+version: 0.1.0
+
+description: |
+  Visual audit toolkit for PDFs built on aloli-crystal/pdf2text.
+  Four pillars : baseline (extract manifest YAML), diff (compare
+  two baselines for regression detection), lint (detect typographic
+  anomalies : margin overflow, stuck words, orphan punctuation,
+  justify gaps), annotate (generate a PDF report listing findings).
+  Pure-Crystal, zero external runtime dependencies.
+
+authors:
+  - Philippe Nénert <philippe@aloli.fr>
+
+crystal: ">= 1.10.0"
+
+license: MIT
+
+dependencies:
+  pdf2text:
+    github: aloli-crystal/pdf2text
+    version: "~> 0.3"
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+    version: "~> 1.6"
+
+targets:
+  pdf-audit:
+    main: src/cli.cr

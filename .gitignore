@@ -1,0 +1,6 @@
+/bin/pdf-audit
+/bin/pdf-audit.dwarf
+/bin/ameba
+/bin/ameba.cr
+/lib/
+*.dwarf

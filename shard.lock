@@ -1,0 +1,10 @@
+version: 2.0
+shards:
+  ameba:
+    git: https://github.com/crystal-ameba/ameba.git
+    version: 1.6.4
+
+  pdf2text:
+    git: https://github.com/aloli-crystal/pdf2text.git
+    version: 0.3.0
+
