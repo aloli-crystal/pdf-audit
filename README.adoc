@@ -1,57 +1,55 @@
-= aloli-crystal/pdf_audit
+= aloli-crystal/pdf-audit
 :toc: left
 :toc-title: Contents
 
-Visual audit toolkit for PDFs : baseline/diff/lint/annotate. Consumes aloli-crystal/pdf2text.
+See link:README.fr.adoc[the French README] for full documentation.
 
-== Install
+Visual audit toolkit for PDFs. Four pillars : `baseline` (extract
+manifest YAML), `diff` (compare baselines for regression detection),
+`lint` (detect typographic anomalies), `annotate` (generate report
+of findings). Pure Crystal, zero external dependencies — built on
+`aloli-crystal/pdf2text`.
 
-[source,yaml]
-----
-dependencies:
-  pdf_audit:
-    github: aloli-crystal/pdf_audit
-    version: "~> 0.1"
-----
-
-== Quickstart
+== Quick start
 
 [source,crystal]
 ----
-require "pdf_audit"
+require "pdf-audit"
 
-# … example to fill in …
+manifest = PdfAudit::Manifest.from_pdf("doc.pdf")
+findings = PdfAudit::Linter.lint(manifest)
+findings.each do |f|
+  puts "p#{f.page} [#{f.kind}] #{f.message}"
+end
 ----
 
-== Status
+[source,bash]
+----
+pdf-audit baseline doc.pdf -o baseline.yml
+pdf-audit lint doc.pdf
+pdf-audit diff baseline.yml after.yml
+pdf-audit annotate doc.pdf -o report.txt
+pdf-audit help
+----
 
-* *Version* : see https://github.com/aloli-crystal/pdf_audit/releases[GitHub releases]
-* *Default branch* : `production`
-* *License* : MIT (see `LICENSE`)
+== Roadmap
 
-== Documentation
+[%autowidth]
+|===
+| Version | Target | Status
 
-* https://aloli-crystal.github.io/pdf_audit/[Antora doc site] (upcoming)
-* `CHANGELOG.adoc` — version history
-* `CHANGELOG.fr.adoc` — French version
+| `0.1.0` | 4 pillars functional, e2e tested on beryl README | ✓ Released
+| `0.2.0` | `annotate` PDF overlay (rectangles around findings) | Planned
+| `0.3.0` | Additional linter rules (rivers, widows/orphans, asymmetric margins) | Planned
+| `0.4.0` | Reusable GitHub Action + integration with other ALOLI shards | Planned
+| `1.0.0` | TBD when API stabilizes and shard is battle-tested | Deferred
+|===
 
-== ALOLI conventions
-
-This shard follows the
-https://github.com/aloli-crystal[aloli-crystal/*] ecosystem
-conventions:
-
-* `VERSION` constant read at compile-time from `shard.yml` —
-  cannot drift.
-* CLI accepts `pdf_audit help [<sub>]` (UX-standard equivalent
-  of `--help` + per-subcommand focus).
-* Default branch is `production` (never `main`).
-* SemVer 3-digit for original creations, 4-digit for ports of
-  Ruby gems.
-
-To start a new shard with these conventions, see
-https://github.com/aloli-crystal/shard-template[aloli-crystal/shard-template].
+No premature v1.0 — we accumulate 0.x releases while surface
+evolutions are in flight. Maturity is measured by real-world use
+(active CI on several projects, integrated feedback, no breaking
+changes for 6 months).
 
 == License
 
-MIT — see `LICENSE`.
+MIT.
