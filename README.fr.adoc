@@ -1,55 +1,182 @@
-= aloli-crystal/pdf_audit
+= aloli-crystal/pdf-audit
 :toc: left
 :toc-title: Sommaire
+:source-highlighter: rouge
 
-Outil daudit visuel pour PDFs : baseline/diff/lint/annotate. Consomme aloli-crystal/pdf2text.
+Outil d'audit visuel pour PDFs. Quatre piliers : extraction de
+manifest (baseline), diff entre baselines (régression visuelle),
+détection d'anomalies typographiques (lint), génération de rapports
+d'anomalies (annotate). Pure Crystal, zéro dépendance externe — repose
+sur https://github.com/aloli-crystal/pdf2text[`aloli-crystal/pdf2text`].
+
+== Quatre piliers
+
+[%autowidth]
+|===
+| Pilier | Description
+
+| `baseline`
+| Extrait le manifest YAML d'un PDF : SHA-256, dimensions par page,
+  mots avec leurs bbox. Sert de référence pour `diff` ultérieur.
+
+| `diff`
+| Compare 2 manifests (ou 2 dossiers de manifests) et liste les
+  changements (bytes, pages, mots par page). Exit code 0 si
+  identique, 1 sinon — utilisable en CI.
+
+| `lint`
+| Détecte 4 catégories d'anomalies typographiques :
+
+  - `margin_overflow` : mot dépassant la marge droite attendue
+  - `stuck_words` : mots chevauchants (gap négatif)
+  - `huge_gap` : gap excessif entre 2 mots (justification cassée)
+  - `orphan_punctuation` : ligne commençant par `.,;:!?»)]`
+
+| `annotate`
+| Génère un rapport texte structuré listant toutes les anomalies
+  avec leur contexte (page, bbox, message, texte concerné).
+  v0.1.0 produit du texte ; PDF overlay en v0.2.0.
+|===
 
 == Installation
 
 [source,yaml]
 ----
 dependencies:
-  pdf_audit:
-    github: aloli-crystal/pdf_audit
+  pdf-audit:
+    github: aloli-crystal/pdf-audit
     version: "~> 0.1"
 ----
 
-== Démarrage rapide
+== Utilisation CLI
+
+[source,bash]
+----
+# Extraire le manifest d'un PDF
+pdf-audit baseline document.pdf -o baseline.yml
+
+# Comparer 2 manifests (régression visuelle)
+pdf-audit diff baseline.yml after.yml
+pdf-audit diff baseline-dir/ after-dir/
+
+# Détecter les anomalies typographiques
+pdf-audit lint document.pdf
+pdf-audit lint document.pdf --margin 36 --max-gap 20
+
+# Générer un rapport texte des anomalies
+pdf-audit annotate document.pdf -o report.txt
+
+# Aide
+pdf-audit help
+pdf-audit help <command>
+----
+
+== Utilisation programmatique
 
 [source,crystal]
 ----
-require "pdf_audit"
+require "pdf-audit"
 
-# … exemple à compléter …
+# Manifest YAML
+manifest = PdfAudit::Manifest.from_pdf("doc.pdf")
+File.write("baseline.yml", manifest.to_yaml)
+
+# Lint
+opts = PdfAudit::Linter::Options.new(right_margin_pt: 36.0, max_gap_pt: 20.0)
+findings = PdfAudit::Linter.lint(manifest, opts)
+findings.each do |f|
+  puts "p#{f.page} [#{f.kind}] #{f.message}"
+end
+
+# Diff
+baseline = PdfAudit::Manifest.from_yaml(File.read("baseline.yml"))
+diff = PdfAudit::Differ.diff(baseline, manifest)
+puts "Régression!" unless diff.identical
 ----
 
-== Statut
+== Roadmap
 
-* *Version* : voir https://github.com/aloli-crystal/pdf_audit/releases[releases GitHub]
-* *Branche par défaut* : `production`
-* *Licence* : MIT (voir `LICENSE`)
+[%autowidth]
+|===
+| Version | Cible | Statut
 
-== Documentation
+| `0.1.0`
+| 4 piliers fonctionnels (baseline + diff + lint + annotate texte).
+  Test e2e sur README beryl : 33 anomalies détectées (12 huge_gap
+  + 21 margin_overflow).
+| ✓ Livré
 
-* https://aloli-crystal.github.io/pdf_audit/[Site documentaire Antora] (à venir)
-* `CHANGELOG.fr.adoc` — historique des versions
-* `CHANGELOG.adoc` — version anglaise
+| `0.2.0`
+| `annotate` produit un PDF overlay : rectangles colorés autour
+  des anomalies sur le PDF source (via le shard
+  `aloli-crystal/pdf`). Légende sur la dernière page.
+| À venir
 
-== Conventions ALOLI
+| `0.3.0`
+| Règles linter additionnelles :
 
-Ce shard suit les conventions de l'écosystème
-https://github.com/aloli-crystal[aloli-crystal/*] :
+  - `rivers` : alignements verticaux d'espaces sur 3+ lignes
+    consécutives (effet « rivière » typographique)
+  - `widows_orphans` : lignes très courtes en début/fin de
+    paragraphe
+  - `asymmetric_margins` : décalage anormal entre les marges
+    gauche/droite sur des paragraphes consécutifs
+  - `repeated_words` : mots dupliqués adjacents (« le le »)
+| À venir
 
-* Constante `VERSION` lue au compile-time depuis `shard.yml` —
-  pas de désynchro possible.
-* CLI : `pdf_audit help [<sub>]` (équivalent UX standard de
-  `--help` + focus par sous-commande).
-* Branche par défaut `production` (pas `main`).
-* Versioning SemVer 3-chiffres pour création, 4-chiffres pour
-  portage de gem Ruby.
+| `0.4.0`
+| Action GitHub réutilisable : `uses: aloli-crystal/pdf-audit@v0.4`
+  dans un workflow pour comparer une PR à sa baseline et bloquer
+  les régressions visuelles. Intégration dans les autres shards
+  ALOLI (crystal-asciidoctor-pdf en premier consommateur).
+| À venir
 
-Pour démarrer un nouveau shard avec ces conventions :
-https://github.com/aloli-crystal/shard-template[aloli-crystal/shard-template].
+| `v1.0.0`
+| À définir explicitement quand le shard sera jugé stable et que
+  l'API publique sera figée. Pas de v1 prématurée — on accumule
+  les versions 0.x tant que des évolutions de surface sont en
+  cours. La maturité se mesure à l'usage réel (CI active sur
+  plusieurs projets, retours utilisateurs intégrés, pas de
+  breaking change sur 6 mois).
+| À décider
+|===
+
+== Architecture
+
+----
+src/
+├── pdf-audit.cr              # require global
+├── pdf_audit/
+│   ├── version.cr
+│   ├── manifest.cr           # Manifest YAML/JSON serializable
+│   ├── differ.cr             # Compare 2 manifests
+│   ├── linter.cr             # 4 règles d'anomalies
+│   └── annotator.cr          # Rapport texte
+└── cli.cr                    # 4 sous-commandes + help [<sub>]
+----
+
+Le manifest est une structure typée `PdfAudit::Manifest` qui inclut
+`YAML::Serializable` + `JSON::Serializable`, donc round-tripable dans
+les deux formats. Le linter retourne un `Array(Linter::Finding)`
+avec position et type d'anomalie ; sérialisable en JSON via
+`finding.to_h.to_json`.
+
+== Convention de versioning ALOLI
+
+`pdf-audit` est une **création originale** (pas un portage d'une
+gem Ruby), donc le numéro de version est en **3 chiffres SemVer
+classique** : `0.1.0` → `0.2.0` → … → `1.0.0`.
+Voir `feedback_versioning_shards.md` (mémoire ALOLI).
+
+== Dépendances
+
+* `aloli-crystal/pdf2text ~> 0.3` — extraction texte + bbox
+* `aloli-crystal/pdf ~> 1.2` (planifié pour v0.2.0 — PDF overlay)
+* Stdlib Crystal : YAML, JSON, Digest::SHA256
+
+Pas de dépendance externe au runtime (poppler-utils non requis) —
+`pdf-audit` peut tourner dans tout environnement Crystal, y compris
+CI Alpine et Docker minimal.
 
 == Licence
 
